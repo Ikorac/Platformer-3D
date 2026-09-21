@@ -1,12 +1,466 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Website</title>
-</head>
-<body>
-  <h1>Hello, world!</h1>
-  <p>My website is working.</p>
-</body>
+
+<!-- My first ACTUAL 3D game! -->
+<!-- Follow the insructions in-game, and you'll be fine. Also, mouse scroll works but it will scroll down the webapge. just press esc and then scroll back up and click the screen again. -->
+
+<!-- If the program doesn't work, no worries. It doesn't work on my comp either.
+Here are your options
+a) restart enought time but oh noes might get in the way halfway through the game
+b) I go to W3School's empty Tryit Editor, and copy/paste all of the code in. I just work on the code there because oh noes hates my game ;)
+
+so here's the link https://www.w3schools.com/html/tryit.asp?filename=tryhtml_editor
+
+trust me I use it all the time
+
+subscribe if you like this, please :)
+-->
+
+<!-- leaderboard
+
+
+
+
+-->
+
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>platformer wip</title>
+        <script src = 'https://cdn.jsdelivr.net/npm/babylonjs@6.23.0/babylon.min.js'></script>
+        <script src = "https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+    
+    </head>
+    <style>
+        body{
+            overflow:hidden;
+            margin:0;
+        }
+        #renderCanvas{
+            width:600px;
+            height:600px;
+        }
+    </style>
+    <script>
+window.addEventListener('DOMContentLoaded', function(){
+    var canvas = document.getElementById('renderCanvas');
+    canvas.getContext = function(type, data) {
+    data.preserveDrawingBuffer = true;
+    return HTMLCanvasElement.prototype.getContext.call(canvas, type, data);
+    }
+    var coordsDiv = document.createElement('div');
+    coordsDiv.id = 'coords';
+    coordsDiv.style.cssText = 'position:absolute;top:10px;left:10px;color:white;background:rgba(0,0,0,0.7);padding:8px 12px;font-family:monospace;font-size:14px;border-radius:4px;pointer-events:none;z-index:1000;';
+    document.body.appendChild(coordsDiv);
+    
+    var msgDiv = document.createElement('div');
+    msgDiv.id = 'coords';
+    msgDiv.style.cssText = 'position:absolute;top:10px;right:10px;color:white;background:rgba(0,0,0,0.7);padding:8px 12px;font-family:monospace;font-size:14px;border-radius:4px;pointer-events:none;z-index:1000;';
+    document.body.appendChild(msgDiv);
+    
+    
+    var timeDiv = document.createElement('div');
+    timeDiv.id = 'coords';
+    timeDiv.style.cssText = 'position:absolute;bottom:10px;right:10px;color:white;background:rgba(0,0,0,0.7);padding:8px 12px;font-family:monospace;font-size:14px;border-radius:4px;pointer-events:none;z-index:1000;';
+    document.body.appendChild(timeDiv);
+    
+    var wonDiv = document.createElement('div');
+    wonDiv.id = 'coords';
+    wonDiv.style.cssText = 'position:absolute;bottom:10px;left:10px;color:white;background:rgba(0,0,0,0.7);padding:8px 12px;font-family:monospace;font-size:14px;border-radius:4px;pointer-events:none;z-index:1000;';
+    document.body.appendChild(wonDiv);
+    
+    wonDiv.textContent = "You need to win!";
+    
+    
+    document.body.appendChild(msgDiv);
+    const engine = new BABYLON.Engine(canvas, true, {
+        stencil: false,
+        lowQuality: true,
+        antialias: false, 
+        preserveDrawingBuffer: false
+    });
+    function run(){
+    	endTime = NaN;
+        let click = false;
+        const scene = new BABYLON.Scene(engine);
+        var frame = 0;
+        //From now on all the code will go here
+        const gravityVector = new BABYLON.Vector3(0,-10,0);
+        scene.enablePhysics(gravityVector, new BABYLON.CannonJSPlugin());
+         var keys = {};
+        window.addEventListener('keydown', function(e) {
+            keys[e.key] = true;
+        });
+        window.addEventListener('keyup', function(e) {
+            keys[e.key] = false;
+        });
+    
+        let hov = 0;
+        let rot = 0;
+        scene.clearColor = new BABYLON.Color3(0, 0.804, 1);
+        let player = BABYLON.MeshBuilder.CreateBox("player", {width: 1, height: 1, depth: 1}, scene);
+        player.material = new BABYLON.StandardMaterial("BoxMaterial", scene);
+        player.material.diffuseColor = new BABYLON.Color3(255 / 255, 147 / 255, 0);
+        player.physicsImpostor = new BABYLON.PhysicsImpostor(player, BABYLON.PhysicsImpostor.BoxImpostor, {mass: 1, restitution: 0.0}, scene);
+        
+        var plr = {
+        	x: player.position.x,
+            y: player.position.y,
+            z: player.position.z,
+            w: 1.5,
+            h: 1.5,
+            d: 1.5,
+        };
+        
+        let canJump = true;
+        let cooldown = 50;
+        let inCooldown = false;
+    
+        
+        
+        const camera = new BABYLON.ArcRotateCamera("Camera",
+            Math.PI / 2,
+            Math.PI / 3,
+            20,
+            player.position,
+            scene);
+        camera.lowerRadiusLimit = 5;
+        camera.upperRadiusLimit = 20;
+        camera.attachControl(canvas, true); 
+        
+        //this don't rlly work
+        const ambientLight = new BABYLON.HemisphericLight("ambient", new BABYLON.Vector3(0, 400, 0), scene);
+		ambientLight.intensity = 0.3;
+        const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-0.2, -5000, 0.2), scene);
+light.position = new BABYLON.Vector3(20, 40, 20);
+
+		const shadowGenerator = new BABYLON.ShadowGenerator(256, light);
+        
+        shadowGenerator.addShadowCaster(player); 
+        
+        function die() {        
+            player.position.x = 0; //9
+            player.position.y = 0; //5
+            player.position.z = 0;  //-65   
+            frame = 0;
+        }
+        die();
+        function win() {
+        	die();
+            player.position.y = -20;
+        	msgDiv.textContent = "LOL NOPE";
+            wonDiv.textContent = "You won! With ";
+        }
+        
+        
+        
+        let cubes = [];
+        
+        //3D function
+        function new3D(config, type){
+            let obj = {
+                x: config.x || 0,
+                y: config.y || 0,
+                z: config.z || 0,
+                w: config.w || 1,
+                h: config.h || 1,
+                d: config.d || 1,
+                xRot: config.xRot || 0,
+                yRot: config.yRot || 0,
+                zRot: config.zRot || 0,
+                clr: config.clr || [255, 0, 0],
+                mass: config.mass || 0,
+                friction: config.friction || 0.3,
+                restitution: config.restitution || 0,
+                glow: config.glow || false,
+                glowPower: config.glowPower || 0,
+                roughness: config.roughness || 0,
+                metallic: config.metallic || 0,
+                physics: config.physics || false,
+                type: config.type || "cube",
+                material: config.material || "standard",
+                d: config.d || 1,
+                seg: config.seg || 10,
+                dt: config.dt || 1,
+                db: config.db || 1,
+                sleep: config.sleep || false,
+                glow: config.glow || false,
+                message: config.message || "",
+                speed: config.speed || 0,
+                lngth: config.lngth || 5,
+                far: 0,
+                //makeShadow = config.makeShadow || false,
+                //haveShadow = !config.haveShadow || false,
+            };
+            let Obj;
+            switch(obj.type) {
+                case "cylinder":
+                    Obj = BABYLON.MeshBuilder.CreateCylinder("cylinder", {height: obj.h, diameterTop: obj.dt, diameterBottom: obj.db}, scene);
+                Obj.material = new BABYLON.StandardMaterial("cylinderMaterial", scene);
+                break;
+                case "sphere":
+                    Obj = BABYLON.MeshBuilder.CreateSphere('sphere', {segments: obj.seg, diameter: obj.d}, scene);
+                    Obj.material = new BABYLON.StandardMaterial("sphereMaterial", scene);
+                    
+                break;
+                default:
+                  Obj = BABYLON.MeshBuilder.CreateBox('Box', {width: obj.w, height: obj.h, depth: obj.d}, scene);
+              Obj.material = new BABYLON.StandardMaterial("BoxMaterial", scene);
+              if(obj.mass === 0 ) {
+                cubes.push({
+                  x: obj.x,
+                  y: obj.y,
+                  z: obj.z,
+                  w: obj.w,
+                  h: obj.h,
+                  d: obj.d,
+                  type: type || "ground", //default to ground
+                  squeeze: 1,
+                  message: obj.message,
+                });
+              }
+                
+            }
+            Obj.material.diffuseColor = new BABYLON.Color3(obj.clr[0] / 255, obj.clr[1] / 255, obj.clr[2] / 255);
+            Obj.position = new BABYLON.Vector3(obj.x, obj.y, obj.z);
+            Obj.rotation = new BABYLON.Vector3(obj.xRot, obj.yRot, obj.zRot);
+            
+            if(obj.physics) {
+                //put in switch
+                Obj.physicsImpostor = new BABYLON.PhysicsImpostor(Obj, BABYLON.PhysicsImpostor.BoxImpostor, obj, scene);
+            }
+            if(obj.sleep) {
+            	Obj.sleep();
+            }
+            if(obj.makeShadow) {
+            	shadowGenerator.addShadowCaster(Obj); 
+            }
+            if(!obj.haveShadow) {
+            	Obj.receiveShadows = true;
+            }
+            if(obj.glow) {
+              const material = new BABYLON.StandardMaterial("glowMat", scene);
+              material.emissiveColor = new BABYLON.Color3(obj.clr[0] / 255, obj.clr[1] / 255, obj.clr[2] / 255);
+              Obj.material = material;
+              glowLayer.addIncludedOnlyMesh(Obj);
+            }
+            Obj.speed = obj.speed;
+    		Obj.lngth = obj.lngth;
+            Obj.far = obj.far;
+            return Obj;
+        }
+        function cubeCollide(p1X, p1Y, p1Z, p1W, p1H, p1D, p2X, p2Y, p2Z, p2W, p2H, p2D){
+            return(p1X + p1W / 2 > p2X - p2W && p1X - p1W / 2 < p2X + p2W && p1Y + p1H / 2 > p2Y - p2H && p1Y - p1H / 2 < p2Y + p2H && p1Z + p1D / 2 > p2Z - p2D && p1Z - p1D / 2 < p2Z + p2D); 
+        }
+        
+        function cubesCollide(obj1, obj2) {
+        	return cubeCollide(obj1.x, obj1.y, obj1.z, obj1.w, obj1.h, obj1.d, obj2.x, obj2.y, obj2.z, obj2.w, obj2.h, obj2.d);        
+        }
+               
+        
+        //world
+        new3D({x: 0, y: -4, z: 0, physics: true, mass: 0, type: "cube", w: 15, h: 0.8, d: 15, clr: [100, 100, 100], message: "Welcome! WASD to move, Sapce to jump",});
+        
+        new3D({x: 15, y: -2, z: -15, physics: true, mass: 0, type: "cube", w: 5, h: 0.8, d: 5, clr: [100, 100, 100], message: "You can also use the arrow keys to turn your world",});
+        
+        var thisone = new3D({x: 0, y: -6, z: -45, physics: !true, mass: 0, type: "cube", w: 5, h: 5, d: 5, clr: [100, 100, 100], glow: !true, message: "Watch out; that red stuff's lava!",});
+        thisone.visibility = 0;
+        new3D({x: 0, y: -6, z: -45, physics: true, mass: 0, type: "cylinder", w: 5, h: 5, d: 5, clr: [100, 100, 100], dt: 5, db: 5});
+        
+        
+        new3D({x: 10, y: -3, z: -65, physics: true, mass: 0, type: "cube", w: 5, h: 5, d: 5, clr: [100, 100, 100], message: "That pink thing: a trampoline",});
+        new3D({x: -5, y: -10, z: -125, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 100], message: "underneath here is a portal"});
+        new3D({x: -5, y: -20, z: -125, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 300],}, "portal1");
+        new3D({x: -5, y: 20, z: -125, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 100], message: "welcome! look below you. Looks familiar? Now look up!"});
+        new3D({x: 5, y: 30, z: -35, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 100], message: "Phew! *That* was hard? Get ready!"});
+        new3D({x: -5, y: 30, z: -15, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 100], message: "just gotta go along the wall..."});
+        new3D({x: -25, y: 30, z: -15, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 100], message: "oof"});
+        new3D({x: -45, y: 30, z: 0, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 100], message: "loooook at that"});
+        new3D({x: -65, y: 30, z: 20, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 100], message: "you've come so far!"});
+        new3D({x: -55, y: 35, z: 40, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 100], message: "still more to go, though"});
+        new3D({x: -15, y: 35, z: 40, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 100], message: "still more to go, though"});
+        new3D({x: 5, y: 38, z: 30, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 100], message: "LEEEEAAAAAPPPP"});
+        new3D({x: 15, y: 42, z: 20, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [100, 100, 100], message: "so close"});
+        
+        
+        
+        
+        new3D({x: -45, y: 40, z: 55, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [255, 0, 255], restitution: 2.3}, "trampoline");
+        
+        
+        
+        new3D({x: 0, y: 40, z: 0, physics: true, mass: 0, type: "cube", w: 15, h: 5, d: 15, clr: [255, 255, 10], message: "You won! Touch that blue block to start over.",}, "gold");
+        
+        
+        new3D({x: 5, y: -6, z: -55,type: "cube", w: 5, h: 0.1, d: 5, clr: [255, 10, 10]}, "lava");
+        new3D({x: 5, y: 40, z: -10,type: "cube", w: 35, h: 20, d: 0.3, clr: [100, 100, 100], physics: true, mass: 0,});
+        
+        new3D({x: -5, y: -6, z: -95, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [255, 0, 255], restitution: 2.3}, "trampoline");
+        
+        var pltfrm1 = new3D({x: -5, y: -6, z: -125, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [0, 255, 0], message: "slimey stuff", speed: 0.1, lngth: 3});
+        var pltfrm2 = new3D({x: -5, y: 20, z: -105, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [0, 255, 0], message: "hi again", speed: 0.2, lngth: 4});
+        var pltfrm3 = new3D({x: -5, y: 15, z: -75, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [0, 255, 0], message: "wheee", speed: 0.2, lngth: 6});
+        var pltfrm4 = new3D({x: 5, y: 20, z: -55, physics: true, mass: 0, type: "cube", w: 5, h: 1, d: 5, clr: [0, 255, 0], message: "ow", speed: 0.2, lngth: 10});
+        
+        
+        //lil pushovers (for fun)
+        /* uncomment this for fun times
+		new3D({x: 3,physics:true,restitution:0,mass:1, clr: [0, 0, 255]});
+        new3D({x: 0,physics:true,restitution:0,mass:2, clr: [0, 0, 255],y:30});
+        new3D({x: 6,physics:true,restitution:0,mass:2, clr: [0, 0, 255],y:30});
+        
+        var bx = new3D({x: -2, y: 6,w: 2,h:4,physics:true,restitution:0,mass:0.1, clr: [0, 0, 255]});
+        new3D({x: 0, y: 4,w: 2,h:4,physics:true,restitution:0,mass:0.1, clr: [0, 0, 255]});
+        new3D({x: 0, y: 14,w: 2,h:4,physics:true,restitution:0,mass:0.1, clr: [0, 0, 255]});
+        new3D({x: 4, y: 19,w: 2,h:4,physics:true,restitution:0,mass:0.1, clr: [0, 0, 255]});
+        new3D({x: -4, y: 29,w: 2,h:4,physics:true,restitution:0,mass:0.1, clr: [0, 0, 255]});
+        new3D({x: -4, y: 29,w: 2,h:4,physics:true,restitution:0,mass:0.1, clr: [0, 0, 255], z: 2});
+        new3D({x: -4, y: 29,w: 2,h:4,physics:true,restitution:0,mass:0.1, clr: [0, 0, 255], z: -2});
+        new3D({x: 4, y: 29,w: 2,h:4,physics:true,restitution:0,mass:0.1, clr: [0, 0, 255], z: 2});
+        new3D({x: 4, y: 29,w: 2,h:4,physics:true,restitution:0,mass:0.1, clr: [0, 0, 255], z: -2});
+        new3D({x: 4, y: 32,w: 5,d:5,physics:true,restitution:0,mass:0.1, clr: [0, 0, 255], z: -2});
+        
+        new3D({x: 5, y: 10,w: 2,h:5,physics:true,restitution:0,mass:0.1, clr: [0, 0, 255], type: "cylinder", dt: 2, db: 2});
+        new3D({x: 0, y: 400, z: -45, physics: true, mass: 2, type: "cylinder", w: 5, h: 5, d: 5, clr: [100, 100, 100], dt: 2, db: 2});
+        */
+        
+    	
+        
+        
+        scene.registerAfterRender(function() {
+            //moves platforms
+            pltfrm1.position.x += pltfrm1.speed;
+            pltfrm1.far += pltfrm1.speed;
+            if(Math.abs(pltfrm1.far) > pltfrm1.lngth) {
+            	pltfrm1.speed *= -1;
+                pltfrm1.far = 0;
+            }
+            pltfrm2.position.x += pltfrm2.speed;
+            pltfrm2.far += pltfrm2.speed;
+            if(Math.abs(pltfrm2.far) > pltfrm2.lngth) {
+            	pltfrm2.speed *= -1;
+                pltfrm2.far = 0;
+            }
+            pltfrm3.position.y += pltfrm3.speed;
+            pltfrm3.far += pltfrm3.speed;
+            if(Math.abs(pltfrm3.far) > pltfrm3.lngth) {
+            	pltfrm3.speed *= -1;
+                pltfrm3.far = 0;
+            }
+            pltfrm4.position.y += pltfrm4.speed;
+            pltfrm4.far += pltfrm4.speed;
+            if(Math.abs(pltfrm4.far) > pltfrm4.lngth) {
+            	pltfrm4.speed *= -1;
+                pltfrm4.far = 0;
+            }
+            //everything else
+            
+            //damping
+            var vel = player.physicsImpostor.getLinearVelocity();
+            player.physicsImpostor.setLinearVelocity(vel.scale(.95));
+
+            plr.x = player.position.x;//update coors
+            plr.y = player.position.y;
+            plr.z = player.position.z;
+            
+            //text
+            coordsDiv.textContent = "x: " + plr.x.toFixed(2) + "  y: " + plr.y.toFixed(2) + "  z: " + plr.z.toFixed(2);
+            
+            
+            //finds camera stuff
+            var forward = camera.getFrontPosition(1).subtract(camera.position);
+            forward.y = 0;
+            forward = forward.normalize().scale(0.7);
+
+            var backward = BABYLON.Vector3.TransformCoordinates(forward, BABYLON.Matrix.RotationY(Math.PI));
+            var left = BABYLON.Vector3.TransformCoordinates(forward, BABYLON.Matrix.RotationY((3 * Math.PI) / 2));
+            var right = BABYLON.Vector3.TransformCoordinates(forward, BABYLON.Matrix.RotationY(Math.PI / 2));
+            
+            //key movements
+            if (keys.w) { 
+                player.applyImpulse(forward, player.getAbsolutePosition());
+            }
+            if (keys.s) {
+                player.applyImpulse(backward, player.getAbsolutePosition());
+            }
+            if (keys.a) {
+                player.applyImpulse(left, player.getAbsolutePosition());
+            }
+            if (keys.d) {
+                player.applyImpulse(right, player.getAbsolutePosition());
+            }
+            camera.setTarget(player.position.clone());
+            
+            //special blocks (very very messy!)
+            for (let i = 0; i < cubes.length; i++) {
+                if (cubes[i].type === "lava" && cubesCollide(plr, cubes[i])) {
+                    die();
+                    break;
+                }
+                if (cubes[i].type === "trampoline" && cubesCollide(plr, cubes[i])) {
+                	player.applyImpulse(new BABYLON.Vector3(0, 35, 0), player.getAbsolutePosition());   
+                    cubes[i].squeeze = 1.5;
+                }
+                if (cubes[i].type === "gold" && cubesCollide(plr, cubes[i])) {
+                	wonDiv.textContent = Math.floor(f / 60) + ":" + Math.floor(f % 60) + ":" + Math.floor(frame % 60);
+                    win();
+                    
+                    break;
+                }
+                if (cubes[i].type === "portal1" && cubesCollide(plr, cubes[i])) {
+                    player.position.y = 25;
+                }
+                if (cubesCollide(plr, cubes[i])) {
+                	msgDiv.textContent = cubes[i].message;
+                    
+                }
+                if(cubes[i].squeeze > 1) {
+                	cubes[i].squeeze --;
+                }
+            }
+            
+            //raycast for collisions
+            var origin = player.getAbsolutePosition().clone();
+            var ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 0.8); // reach just below feet
+            var hit = scene.pickWithRay(ray, function(mesh) {
+                return mesh.isPickable && mesh !== player;
+            });
+            
+            //can he jump
+            canJump = !!(hit && hit.hit);
+            
+            if (keys[' '] && canJump){
+                player.applyImpulse(new BABYLON.Vector3(0, 20, 0), player.getAbsolutePosition());
+            }
+            
+            //if we fell
+            if(player.position.y < -20) {
+            	die();
+            }
+
+            click = false;
+            var f = frame / 60;
+            timeDiv.textContent = Math.floor(f / 60) + ":" + Math.floor(f % 60) + ":" + Math.floor(frame % 60);
+    		frame += 1;//why?
+        });
+        function pointerLock(){
+            canvas.requestPointerLock();
+            click = true;
+        }
+        //lock 'em up tight
+        document.addEventListener("click", pointerLock);
+        
+        return scene;
+    }
+    const scene = run();
+    
+    engine.runRenderLoop(function(){
+        scene.render();
+    });
+});
+    </script>
+     
+    <body>
+        <canvas id = "renderCanvas"></canvas>
+    </body>
 </html>
+
