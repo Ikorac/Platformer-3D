@@ -43,24 +43,19 @@ subscribe if you like this, please :)
     </style>
     <script>
 window.addEventListener('DOMContentLoaded', function(){
-    const canvas = document.getElementById("renderCanvas");
+const canvas = document.getElementById("renderCanvas");
 const engine = new BABYLON.Engine(canvas, true, {
-        stencil: false,
-        lowQuality: true,
-        antialias: false, 
-        preserveDrawingBuffer: false
-    });
+	stencil: false,
+	lowQuality: true,
+	antialias: false, 
+	preserveDrawingBuffer: false
+});
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   
-  // If using Babylon.js, uncomment the line below:
-   engine.resize();
   
-  // If using Three.js, uncomment the lines below:
-  // camera.aspect = window.innerWidth / window.innerHeight;
-  // camera.updateProjectionMatrix();
-  // renderer.setSize(window.innerWidth, window.innerHeight);
+   engine.resize();
 }
 
 // Run on load and whenever the user resizes the window
