@@ -35,15 +35,21 @@ subscribe if you like this, please :)
             overflow:hidden;
             margin:0;
         }
-        #renderCanvas{
-            width:600px;
-            height:600px;
-        }
+        #renderCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
     </style>
     <script>
 window.addEventListener('DOMContentLoaded', function(){
     const canvas = document.getElementById("renderCanvas");
-
+const engine = new BABYLON.Engine(canvas, true, {
+        stencil: false,
+        lowQuality: true,
+        antialias: false, 
+        preserveDrawingBuffer: false
+    });
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -89,12 +95,7 @@ resizeCanvas();
     
     
     document.body.appendChild(msgDiv);
-    const engine = new BABYLON.Engine(canvas, true, {
-        stencil: false,
-        lowQuality: true,
-        antialias: false, 
-        preserveDrawingBuffer: false
-    });
+    
     function run(){
     	endTime = NaN;
         let click = false;
@@ -480,4 +481,3 @@ light.position = new BABYLON.Vector3(20, 40, 20);
         <canvas id = "renderCanvas"></canvas>
     </body>
 </html>
-
